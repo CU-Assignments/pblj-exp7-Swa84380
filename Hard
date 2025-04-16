@@ -1,0 +1,211 @@
+StudentManagement/
+│
+├── Student.java             --> Model
+├── StudentDAO.java          --> Controller (Data Access Object)
+├── StudentView.java         --> View (Menu-driven)
+├── DBConnection.java        --> DB utility for connection
+└── (MySQL Database Table)
+CREATE TABLE Student (
+    StudentID INT PRIMARY KEY,
+    Name VARCHAR(100),
+    Department VARCHAR(50),
+    Marks DOUBLE
+);
+public class Student {
+    private int studentID;
+    private String name;
+    private String department;
+    private double marks;
+
+    public Student(int studentID, String name, String department, double marks) {
+        this.studentID = studentID;
+        this.name = name;
+        this.department = department;
+        this.marks = marks;
+    }
+
+    // Getters
+    public int getStudentID() { return studentID; }
+    public String getName() { return name; }
+    public String getDepartment() { return department; }
+    public double getMarks() { return marks; }
+
+    // Setters
+    public void setName(String name) { this.name = name; }
+    public void setDepartment(String department) { this.department = department; }
+    public void setMarks(double marks) { this.marks = marks; }
+}
+import java.sql.*;
+
+public class DBConnection {
+    private static final String URL = "jdbc:mysql://localhost:3306/your_database";
+    private static final String USER = "your_username";
+    private static final String PASSWORD = "your_password";
+
+    public static Connection getConnection() throws SQLException {
+        return DriverManager.getConnection(URL, USER, PASSWORD);
+    }
+}
+import java.sql.*;
+
+public class DBConnection {
+    private static final String URL = "jdbc:mysql://localhost:3306/your_database";
+    private static final String USER = "your_username";
+    private static final String PASSWORD = "your_password";
+
+    public static Connection getConnection() throws SQLException {
+        return DriverManager.getConnection(URL, USER, PASSWORD);
+    }
+}
+import java.sql.*;
+import java.util.*;
+
+public class StudentDAO {
+
+    public void addStudent(Student student) {
+        String sql = "INSERT INTO Student (StudentID, Name, Department, Marks) VALUES (?, ?, ?, ?)";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, student.getStudentID());
+            ps.setString(2, student.getName());
+            ps.setString(3, student.getDepartment());
+            ps.setDouble(4, student.getMarks());
+
+            ps.executeUpdate();
+            System.out.println("Student added successfully.");
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public List<Student> getAllStudents() {
+        List<Student> list = new ArrayList<>();
+        String sql = "SELECT * FROM Student";
+        try (Connection conn = DBConnection.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+
+            while (rs.next()) {
+                Student s = new Student(
+                        rs.getInt("StudentID"),
+                        rs.getString("Name"),
+                        rs.getString("Department"),
+                        rs.getDouble("Marks")
+                );
+                list.add(s);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
+
+    public void updateStudent(Student student) {
+        String sql = "UPDATE Student SET Name=?, Department=?, Marks=? WHERE StudentID=?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, student.getName());
+            ps.setString(2, student.getDepartment());
+            ps.setDouble(3, student.getMarks());
+            ps.setInt(4, student.getStudentID());
+
+            ps.executeUpdate();
+            System.out.println("Student updated successfully.");
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void deleteStudent(int studentID) {
+        String sql = "DELETE FROM Student WHERE StudentID=?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, studentID);
+            ps.executeUpdate();
+            System.out.println("Student deleted successfully.");
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+}
+import java.util.*;
+
+public class StudentView {
+    private static Scanner sc = new Scanner(System.in);
+    private static StudentDAO dao = new StudentDAO();
+
+    public static void main(String[] args) {
+        int choice;
+        do {
+            System.out.println("\n=== Student Management ===");
+            System.out.println("1. Add Student");
+            System.out.println("2. View Students");
+            System.out.println("3. Update Student");
+            System.out.println("4. Delete Student");
+            System.out.println("5. Exit");
+            System.out.print("Enter choice: ");
+            choice = sc.nextInt();
+
+            switch (choice) {
+                case 1 -> addStudent();
+                case 2 -> viewStudents();
+                case 3 -> updateStudent();
+                case 4 -> deleteStudent();
+                case 5 -> System.out.println("Exiting...");
+                default -> System.out.println("Invalid choice!");
+            }
+        } while (choice != 5);
+    }
+
+    private static void addStudent() {
+        System.out.print("Enter ID: ");
+        int id = sc.nextInt();
+        sc.nextLine(); // Consume newline
+        System.out.print("Enter Name: ");
+        String name = sc.nextLine();
+        System.out.print("Enter Department: ");
+        String dept = sc.nextLine();
+        System.out.print("Enter Marks: ");
+        double marks = sc.nextDouble();
+
+        Student s = new Student(id, name, dept, marks);
+        dao.addStudent(s);
+    }
+
+    private static void viewStudents() {
+        List<Student> list = dao.getAllStudents();
+        System.out.println("\nID\tName\t\tDepartment\tMarks");
+        System.out.println("---------------------------------------------");
+        for (Student s : list) {
+            System.out.printf("%d\t%-15s%-12s%.2f\n",
+                    s.getStudentID(),
+                    s.getName(),
+                    s.getDepartment(),
+                    s.getMarks());
+        }
+    }
+
+    private static void updateStudent() {
+        System.out.print("Enter ID to update: ");
+        int id = sc.nextInt();
+        sc.nextLine();
+        System.out.print("Enter new Name: ");
+        String name = sc.nextLine();
+        System.out.print("Enter new Department: ");
+        String dept = sc.nextLine();
+        System.out.print("Enter new Marks: ");
+        double marks = sc.nextDouble();
+
+        Student s = new Student(id, name, dept, marks);
+        dao.updateStudent(s);
+    }
+
+    private static void deleteStudent() {
+        System.out.print("Enter ID to delete: ");
+        int id = sc.nextInt();
+        dao.deleteStudent(id);
+    }
+}
