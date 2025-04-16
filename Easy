@@ -1,0 +1,62 @@
+CREATE TABLE Employee (
+    EmpID INT PRIMARY KEY,
+    Name VARCHAR(100),
+    Salary DECIMAL(10, 2)
+);
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.Statement;
+import java.sql.SQLException;
+
+public class MySQLFetch {
+    public static void main(String[] args) {
+        // Database credentials
+        String url = "jdbc:mysql://localhost:3306/your_database_name";
+        String user = "your_username";
+        String password = "your_password";
+
+        Connection conn = null;
+        Statement stmt = null;
+        ResultSet rs = null;
+
+        try {
+            // Load MySQL JDBC Driver (optional for newer versions)
+            Class.forName("com.mysql.cj.jdbc.Driver");
+
+            // Establish connection
+            conn = DriverManager.getConnection(url, user, password);
+            System.out.println("Connected to the database!");
+
+            // Create Statement
+            stmt = conn.createStatement();
+
+            // Execute SQL Query
+            String sql = "SELECT EmpID, Name, Salary FROM Employee";
+            rs = stmt.executeQuery(sql);
+
+            // Display results
+            System.out.println("EmpID\tName\t\tSalary");
+            System.out.println("----------------------------------");
+            while (rs.next()) {
+                int empId = rs.getInt("EmpID");
+                String name = rs.getString("Name");
+                double salary = rs.getDouble("Salary");
+
+                System.out.printf("%d\t%s\t\t%.2f\n", empId, name, salary);
+            }
+        } catch (ClassNotFoundException e) {
+            System.out.println("MySQL JDBC Driver not found!");
+            e.printStackTrace();
+        } catch (SQLException e) {
+            System.out.println("Database connection or query failed!");
+            e.printStackTrace();
+        } finally {
+            // Close resources
+            try { if (rs != null) rs.close(); } catch (SQLException e) {}
+            try { if (stmt != null) stmt.close(); } catch (SQLException e) {}
+            try { if (conn != null) conn.close(); } catch (SQLException e) {}
+        }
+    }
+}
+
