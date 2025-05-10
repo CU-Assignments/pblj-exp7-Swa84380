@@ -1,0 +1,168 @@
+CREATE TABLE Product (
+    ProductID INT PRIMARY KEY,
+    ProductName VARCHAR(100),
+    Price DECIMAL(10, 2),
+    Quantity INT
+);
+import java.sql.*;
+import java.util.Scanner;
+
+public class ProductCRUD {
+    static final String URL = "jdbc:mysql://localhost:3306/your_database";
+    static final String USER = "your_username";
+    static final String PASSWORD = "your_password";
+
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        Connection conn = null;
+
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+            conn = DriverManager.getConnection(URL, USER, PASSWORD);
+            conn.setAutoCommit(false); // Enable transaction management
+
+            int choice;
+            do {
+                System.out.println("\n===== PRODUCT MANAGEMENT MENU =====");
+                System.out.println("1. Add Product");
+                System.out.println("2. View All Products");
+                System.out.println("3. Update Product");
+                System.out.println("4. Delete Product");
+                System.out.println("5. Exit");
+                System.out.print("Enter your choice: ");
+                choice = sc.nextInt();
+
+                switch (choice) {
+                    case 1:
+                        addProduct(conn, sc);
+                        break;
+                    case 2:
+                        viewProducts(conn);
+                        break;
+                    case 3:
+                        updateProduct(conn, sc);
+                        break;
+                    case 4:
+                        deleteProduct(conn, sc);
+                        break;
+                    case 5:
+                        System.out.println("Exiting program...");
+                        break;
+                    default:
+                        System.out.println("Invalid choice!");
+                }
+            } while (choice != 5);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            try { if (conn != null) conn.close(); } catch (SQLException e) { e.printStackTrace(); }
+            sc.close();
+        }
+    }
+
+    // 1. Create (Insert)
+    public static void addProduct(Connection conn, Scanner sc) {
+        try {
+            System.out.print("Enter Product ID: ");
+            int id = sc.nextInt();
+            sc.nextLine(); // Consume newline
+            System.out.print("Enter Product Name: ");
+            String name = sc.nextLine();
+            System.out.print("Enter Price: ");
+            double price = sc.nextDouble();
+            System.out.print("Enter Quantity: ");
+            int qty = sc.nextInt();
+
+            String sql = "INSERT INTO Product (ProductID, ProductName, Price, Quantity) VALUES (?, ?, ?, ?)";
+            PreparedStatement ps = conn.prepareStatement(sql);
+            ps.setInt(1, id);
+            ps.setString(2, name);
+            ps.setDouble(3, price);
+            ps.setInt(4, qty);
+
+            int rows = ps.executeUpdate();
+            conn.commit();
+            System.out.println(rows + " product(s) added successfully!");
+
+        } catch (SQLException e) {
+            try {
+                conn.rollback();
+                System.out.println("Transaction rolled back.");
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+            }
+            System.out.println("Error adding product: " + e.getMessage());
+        }
+    }
+
+    // 2. Read
+    public static void viewProducts(Connection conn) {
+        try {
+            String sql = "SELECT * FROM Product";
+            Statement stmt = conn.createStatement();
+            ResultSet rs = stmt.executeQuery(sql);
+
+            System.out.println("\nProductID | ProductName | Price | Quantity");
+            System.out.println("------------------------------------------");
+
+            while (rs.next()) {
+                System.out.printf("%d\t%-15s%.2f\t%d\n",
+                        rs.getInt("ProductID"),
+                        rs.getString("ProductName"),
+                        rs.getDouble("Price"),
+                        rs.getInt("Quantity"));
+            }
+
+        } catch (SQLException e) {
+            System.out.println("Error fetching products: " + e.getMessage());
+        }
+    }
+
+    // 3. Update
+    public static void updateProduct(Connection conn, Scanner sc) {
+        try {
+            System.out.print("Enter Product ID to update: ");
+            int id = sc.nextInt();
+            sc.nextLine(); // consume newline
+            System.out.print("Enter new Product Name: ");
+            String name = sc.nextLine();
+            System.out.print("Enter new Price: ");
+            double price = sc.nextDouble();
+            System.out.print("Enter new Quantity: ");
+            int qty = sc.nextInt();
+
+            String sql = "UPDATE Product SET ProductName=?, Price=?, Quantity=? WHERE ProductID=?";
+            PreparedStatement ps = conn.prepareStatement(sql);
+            ps.setString(1, name);
+            ps.setDouble(2, price);
+            ps.setInt(3, qty);
+            ps.setInt(4, id);
+
+            int rows = ps.executeUpdate();
+            conn.commit();
+            System.out.println(rows + " product(s) updated successfully!");
+
+        } catch (SQLException e) {
+            try {
+                conn.rollback();
+                System.out.println("Transaction rolled back.");
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+            }
+            System.out.println("Error updating product: " + e.getMessage());
+        }
+    }
+
+    // 4. Delete
+    public static void deleteProduct(Connection conn, Scanner sc) {
+        try {
+            System.out.print("Enter Product ID to delete: ");
+            int id = sc.nextInt();
+
+            String sql = "DELETE FROM Product WHERE ProductID=?";
+            PreparedStatement ps = conn.prepareStatement(sql);
+            ps.setInt(1, id);
+
+            int rows = ps.executeUpdate();
+            conn.commit();
